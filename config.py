@@ -1,6 +1,6 @@
 import ipaddress
 
-network_topology = {
+network_schemes = {
 
     #For use in the Network Layer
     "IP_addressing_scheme":{
@@ -19,6 +19,26 @@ network_topology = {
         "R1_I2": "CC:CC:CC:CC:CC:CC", #Router R2 (Interface 2)
         "Host_B":"DD:DD:DD:DD:DD:DD"
     }
+
 }
 
-print(network_topology["MAC_addressing_scheme"]["R1_I1"])
+routing_tables = {
+
+        Host_A = {
+            "Host_B": {"next_hop":"R1_I1"}
+            "R1": {"next_hop":"R1_I1"} #should this be R1 or R1_1 since that is the AP?
+        },
+
+        R1 = {
+            "Host_A": {"next_hop":"Host_A"}
+            "Host_B": {"next_hop":"Host_B"}
+        },
+
+        Host_B = {
+            "Host_A": {"next_hop":"R2_T2"}
+            "R1": {"next_hop":"R2_T2"}
+        }
+
+    }
+   
+
