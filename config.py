@@ -1,1 +1,49 @@
+# IP ADDRESSES
+HOST_A_IP = "10.0.1.10"
+HOST_B_IP = "10.0.2.20"
+R1_I1_IP = "10.0.1.1"
+R1_I2_IP = "10.0.2.1"
 
+# MAC ADDRESSES
+HOST_A_MAC = "AA:AA:AA:AA:AA:AA"
+HOST_B_MAC = "DD:DD:DD:DD:DD:DD"
+R1_I1_MAC = "BB:BB:BB:BB:BB:BB"
+R1_I2_MAC = "CC:CC:CC:CC:CC:CC"
+
+# ROUTER INTERFACES
+ROUTER_INTERFACES = {
+    "Interface 1": (R1_I1_IP, R1_I1_MAC),    
+    "Interface 2": (R1_I2_IP, R1_I2_MAC)
+}
+
+# ARP TABLES
+HOST_A_ARP_TABLE = {
+    R1_I1_IP : R1_I1_MAC
+}
+
+HOST_B_ARP_TABLE = {
+    R1_I2_IP : R1_I2_MAC
+}
+
+ROUTER_ARP_TABLE = {
+    HOST_A_IP : HOST_A_MAC,
+    HOST_B_IP : HOST_B_MAC
+}
+
+# ROUTING TABLES
+HOST_A_ROUTING_TABLE = {
+    "10.0.2.0/24" : (R1_I1_IP, "Interface 1")
+}
+
+HOST_B_ROUTING_TABLE = {
+    "10.0.1.0/24" : (R1_I2_IP, "Interface 2")
+}
+
+ROUTER_ROUTING_TABLE = {
+    "10.0.1.0/24" : (HOST_A_IP, "Interface 1"),
+    "10.0.2.0/24" : (HOST_B_IP, "Interface 2")
+}
+
+# PORT NUMBERS
+SRC_PORT = 5000
+DST_PORT = 80
