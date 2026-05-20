@@ -1,44 +1,49 @@
-import ipaddress
+# IP ADDRESSES
+HOST_A_IP = "10.0.1.10"
+HOST_B_IP = "10.0.2.20"
+R1_I1_IP = "10.0.1.1"
+R1_I2_IP = "10.0.2.1"
 
-network_schemes = {
+# MAC ADDRESSES
+HOST_A_MAC = "AA:AA:AA:AA:AA:AA"
+HOST_B_MAC = "DD:DD:DD:DD:DD:DD"
+R1_I1_MAC = "BB:BB:BB:BB:BB:BB"
+R1_I2_MAC = "CC:CC:CC:CC:CC:CC"
 
-    #For use in the Network Layer
-    "IP_addressing_scheme":{
-        "Network_1": ipaddress.ip_network('10.0.1.0/24'), #need to check if this format actually works and will return the raw value
-        "Network_2": ipaddress.ip_network('10.0.2.0/24'), 
-        "Host_A": ipaddress.IPv4Address('10.0.1.10'),
-        "R1_I1": ipaddress.IPv4Address('10.0.1.1'),
-        "Host_B": ipaddress.IPv4Address('10.0.1.20'),
-        "R1_I2": ipaddress.IPv4Address('10.0.2.1')
-    },
-
-    #For use in the Data Link Layer
-    "MAC_addressing_scheme":{
-        "Host_A":" AA:AA:AA:AA:AA:AA",
-        "R1_I1": "BB:BB:BB:BB:BB:BB", #Router R1 (Interface 1)
-        "R1_I2": "CC:CC:CC:CC:CC:CC", #Router R2 (Interface 2)
-        "Host_B":"DD:DD:DD:DD:DD:DD"
-    }
-
+# ROUTER INTERFACES
+ROUTER_INTERFACES = {
+    "Interface 1": (R1_I1_IP, R1_I1_MAC),    
+    "Interface 2": (R1_I2_IP, R1_I2_MAC)
 }
 
-routing_tables = {
+# ARP TABLES
+HOST_A_ARP_TABLE = {
+    R1_I1_IP : R1_I1_MAC
+}
 
-        Host_A = {
-            "Host_B": {"next_hop":"R1_I1"}
-            "R1": {"next_hop":"R1_I1"} #should this be R1 or R1_1 since that is the AP?
-        },
+HOST_B_ARP_TABLE = {
+    R1_I2_IP : R1_I2_MAC
+}
 
-        R1 = {
-            "Host_A": {"next_hop":"Host_A"}
-            "Host_B": {"next_hop":"Host_B"}
-        },
+ROUTER_ARP_TABLE = {
+    HOST_A_IP : HOST_A_MAC,
+    HOST_B_IP : HOST_B_MAC
+}
 
-        Host_B = {
-            "Host_A": {"next_hop":"R2_T2"}
-            "R1": {"next_hop":"R2_T2"}
-        }
+# ROUTING TABLES
+HOST_A_ROUTING_TABLE = {
+    "10.0.2.0/24" : (R1_I1_IP, "Interface 1")
+}
 
-    }
-   
+HOST_B_ROUTING_TABLE = {
+    "10.0.1.0/24" : (R1_I2_IP, "Interface 2")
+}
 
+ROUTER_ROUTING_TABLE = {
+    "10.0.1.0/24" : (HOST_A_IP, "Interface 1"),
+    "10.0.2.0/24" : (HOST_B_IP, "Interface 2")
+}
+
+# PORT NUMBERS
+SRC_PORT = 5000
+DST_PORT = 80
