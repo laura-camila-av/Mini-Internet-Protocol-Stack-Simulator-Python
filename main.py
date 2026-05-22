@@ -55,6 +55,18 @@ def main():
     host_b.next_device  = router     
     router.prev_device  = host_a    
 
+    # layer 3 attributes
+
+    host_a.dst_ip = HOST_B_IP
+    host_b.dst_ip = HOST_A_IP
+
+    host_a.gateway_interface = "Interface 1"
+    host_b.gateway_interface = "Interface 2"
+
+    router.connected_devices = {
+        "Interface 1": host_a,
+        "Interface 2": host_b
+    }
     # pass application layer data to host a for handling - triggers workflow
     host_a.receive_data(data_size)
 
