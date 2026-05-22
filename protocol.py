@@ -22,40 +22,6 @@ class Layer2:
 
 #LAYER 3: NETWORK
 
-#HEADER DEFINITIONS
-"""
-+-------------------------------------------------------------------+
-|Header                     | Example                               |                         
-|---------------------------|---------------------------------------|
-|Source IP (4 bytes)        | 10.0.1.10                             |
-|---------------------------|---------------------------------------|
-|Destination IP (4 bytes)   | 10.0.2.20                             |
-|---------------------------|---------------------------------------|
-|TTL (1 byte)               | 100 (decremented at each router)      |
-|---------------------------|---------------------------------------|
-|Protocol (1 byte)          | 17 (indicates UDP payload)            |
-|---------------------------|---------------------------------------|
-|Total Length (2 bytes)     | 40 (header + payload size)            |
-|---------------------------|---------------------------------------|
-|Payload (variable)         | contains the Layer 4 (UDP segment)    |
-+---------------------------|---------------------------------------+
-"""
-#FUNCTIONALITIES
-
-#   1   Encapsulation: Encapsulate the Layer 4 segment into an IP-like packet before transmission. 
-
-#   2   IP Addressing: Use source and destination IP addresses to identify hosts across networks. 
-
-#   3   Routing and Forwarding: Routers must forward packets based on a routing table.
-
-#       * Each node must maintain a routing table that maps the destination IP address to the outgoing interface and 
-#         the next-hop IP addresses.
-#       * This table is used to determine how packets are forwarded. 
-#   4   Time-to-Live (TTL) Handling
-#       *Decrement the TTL at each router
-#       *Drop the packet if TTL reaches 0
-#   5   Packet Delivery: Deliver valid payload (UDP-like segment) to Layer 4 at the destination host.
-
 class Layer3:
     #Assigns and validates source and destination IP addresses for Layer 3 packet
     def assign_ip_addresses(self, src_ip: str, dst_ip: str):
