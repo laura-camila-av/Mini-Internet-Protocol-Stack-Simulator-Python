@@ -1,50 +1,63 @@
-from devices import Host, Router
-from protocol import Layer2
-from config import *
+# main.py
+# Entry point for the Mini Internet Protocol Stack Simulator.
+# Simulates data transfer from Host A to Host B across all three layers:
+
 import sys
-
-
+from devices import Host, Router
+from config import (
+    HOST_A_IP, HOST_A_MAC, HOST_A_ARP_TABLE, HOST_A_ROUTING_TABLE,
+    HOST_B_IP, HOST_B_MAC, HOST_B_ARP_TABLE, HOST_B_ROUTING_TABLE,
+    ROUTER_ARP_TABLE, ROUTER_INTERFACES, ROUTER_ROUTING_TABLE,
+    SRC_PORT, DST_PORT
+)
 
 def main():
 
-    host_a  = Host("Host A", HOST_A_IP, HOST_A_MAC, HOST_A_ARP_TABLE)
-    host_b  = Host("Host B", HOST_B_IP, HOST_B_MAC, HOST_B_ARP_TABLE)
-    router  = Router("Router R1", ROUTER_ARP_TABLE, ROUTER_INTERFACES)
+    # parse command line argument to get data size in bytes
+    if len(sys.argv) != 2:
+        # ensure correct input format
+        print("Usage: python main.py <data_size>")
+        sys.exit(1)
 
-    mock_packet = "MOCK_LAYER3_PACKET"
+    data_size = int(sys.argv[1])
 
-    print("=" * 60)
-    print("LAYER 2 SIMULATION: Host A → Router R1 → Host B")
-    print("=" * 60)
-    # ─────────────────────────────────────────────
-    # Step 1: Host A sends frame to Router R1
-    # Next hop for Host A is R1 Interface 1
-    # ─────────────────────────────────────────────
-    print("\n--- Host A sending frame to Router R1 ---\n")
-    frame_to_router = host_a.frame_send(mock_packet, R1_I1_IP)
- 
-    # ─────────────────────────────────────────────
-    # Step 2: Router R1 receives frame on Interface 1
-    # ─────────────────────────────────────────────
-    print("\n--- Router R1 receiving frame on Interface 1 ---\n")
-    packet_from_host_a = router.receive_frame(frame_to_router, "Interface 1")
- 
-    # ─────────────────────────────────────────────
-    # Step 3: Router R1 forwards frame to Host B on Interface 2
-    # Next hop for Host B is its IP directly (directly connected network)
-    # ─────────────────────────────────────────────
-    print("\n--- Router R1 forwarding frame to Host B ---\n")
-    frame_to_host_b = router.frame_send(packet_from_host_a, HOST_B_IP, "Interface 2")
- 
-    # ─────────────────────────────────────────────
-    # Step 4: Host B receives frame
-    # ─────────────────────────────────────────────
-    print("\n--- Host B receiving frame ---\n")
-    packet_at_host_b = host_b.receive_frame(frame_to_host_b)
- 
-    print("\n" + "=" * 60)
-    print("LAYER 2 SIMULATION COMPLETE")
-    print("=" * 60)
- 
+    # Instantiate devices
+    host_a = Host(
+        name          = "Host A",
+        ip_addr       = HOST_A_IP,
+        mac_addr      = HOST_A_MAC,
+        arp_table     = HOST_A_ARP_TABLE,
+        routing_table = HOST_A_ROUTING_TABLE,
+        src_port      = SRC_PORT,
+        dst_port      = DST_PORT
+    )
+
+    host_b = Host(
+        name          = "Host B",
+        ip_addr       = HOST_B_IP,
+        mac_addr      = HOST_B_MAC,
+        arp_table     = HOST_B_ARP_TABLE,
+        routing_table = HOST_B_ROUTING_TABLE,
+        src_port      = DST_PORT,
+        dst_port      = SRC_PORT
+    )
+
+    router = Router(
+        name          = "Router R1",
+        arp_table     = ROUTER_ARP_TABLE,
+        interfaces    = ROUTER_INTERFACES,
+        routing_table = ROUTER_ROUTING_TABLE
+    )
+
+    # Create network so each device knows where to send data
+    host_a.next_device  = router    
+    router.next_device  = host_b     
+    host_b.next_device  = router     
+    router.prev_device  = host_a    
+
+    # pass application layer data to host a for handling - triggers workflow
+    host_a.receive_data(data_size)
+
+
 if __name__ == "__main__":
     main()
