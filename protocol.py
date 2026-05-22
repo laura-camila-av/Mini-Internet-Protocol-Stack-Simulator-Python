@@ -40,7 +40,6 @@ class Layer2:
 |Payload (variable)         | contains the Layer 4 (UDP segment)    |
 +---------------------------|---------------------------------------+
 """
-
 #FUNCTIONALITIES
 
 #   1   Encapsulation: Encapsulate the Layer 4 segment into an IP-like packet before transmission. 
@@ -58,7 +57,15 @@ class Layer2:
 #   5   Packet Delivery: Deliver valid payload (UDP-like segment) to Layer 4 at the destination host.
 
 class Layer3:
+    #Assigns and validates source and destination IP addresses for Layer 3 packet
+    def assign_ip_addresses(self, src_ip: str, dst_ip: str):
 
+        self.source_IP = format_address(src_ip)
+        self.dst_IP    = format_address(dst_ip)
+
+        print(f"Layer 3: Source IP assigned: {self.source_IP}")
+        print(f"Layer 3: Destination IP read: {self.dst_IP}")
+    
     def __init__(self, source_IP, dst_IP, ttl, prot, size, payload):
         self.source_IP = source_IP
         self.dst_IP = dst_IP
