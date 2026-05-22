@@ -81,13 +81,13 @@ class Host:
         # rdt2.2 (reliable data transfer v2.2)
         while True:
             # send ACK to network layer (NOT YET DEFINED)
-            ack = self.Layer3.send_packet(segment)
+            ack = self.send_packet(segment)
 
             if ack.seg_type == protocol.Layer4.ACK and ack.seq_num == seq_num:
                 print(f"{self.name}: Layer 4: ACK received: seq={ack.seq_num}")
                 break
             else:
-                print(f"{self.name}: Layer 4: Incorrect ACK received. Retransmitting segment seq={ack.seq_num}")
+                print(f"{self.name}: Layer 4: Incorrect ACK received. Retransmitting segment seq={seq_num}")
     
     def receive_segment(self, segment):
 

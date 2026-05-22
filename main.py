@@ -12,14 +12,14 @@ from config import (
 def main():
 
     # parse command line argument to get data size in bytes and source and destination
-    if len(sys.argv) != 4:
+    if len(sys.argv) < 2:
         # ensure correct input format
         print("Usage: python main.py <data_size> <source> <destination>")
         sys.exit(1)
 
     data_size = int(sys.argv[1])
-    input_src = sys.argv[2]
-    input_dst = sys.argv[3]
+    input_src = sys.argv[2] if len(sys.argv) > 2 else "hostA"
+    input_dst = sys.argv[3] if len(sys.argv) > 3 else "hostB"
 
     # instantiate devices
     host_a = Host(
