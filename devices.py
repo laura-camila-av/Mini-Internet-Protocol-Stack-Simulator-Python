@@ -27,6 +27,7 @@ class Host:
 
         print(f"{self.name}: Layer 2: Frame created: SRC_MAC={src_mac}, DST_MAC={dst_mac}")
         print(f"{self.name}: Layer 2: Frame sent")
+        print()
 
         return frame
     
@@ -43,6 +44,7 @@ class Host:
         packet = frame.decapsulate()
 
         print(f"{self.name}: Layer 2: Packet delivered to Network Layer")
+        print()
 
         return packet
     
@@ -55,6 +57,7 @@ class Host:
         if packet.dst_IP == self.ip_addr:
             print(f"{self.name}: Layer 3: Packet identified as local delivery")
             print(f"{self.name}: Layer 3: Segment delivered to Transport Layer")
+            print()
             return self.receive_segment(packet.payload)
         else:
             print(f"{self.name}: Layer 3: Packet not for this host — discarding.")
@@ -73,6 +76,7 @@ class Host:
                 print(f"{self.name}: Layer 3: Next-hop IP determined: {next_hop_ip}")
                 print(f"{self.name}: Layer 3: Outgoing interface selected")
                 print(f"{self.name}: Layer 3: Packet forwarded to Data Link Layer")
+                print()
                 packet = protocol.Layer3.encapsulate_to_IP_packet(segment, self.ip_addr, dst_ip)
                 return self.frame_send(packet, next_hop_ip)
 
@@ -88,7 +92,7 @@ class Host:
     
     # -------------LAYER 4 HANDLING-------------
 
-    def receive_data(self, data_size):
+    def receive_data(self, data_size, dst_ip):
         data = b'A' * data_size
         # receiving data from application layer
         print(f"{self.name}: Layer 4: Data received from Application Layer. Data size={data_size}")
@@ -106,22 +110,27 @@ class Host:
         # send each chunk sequentially using rdt2.2
         seq_num = 0
         for chunk in chunks:
-            self.send_segment(chunk, seq_num)
+            self.send_segment(chunk, seq_num, dst_ip)
             # alternate sequence number after each successful send
             seq_num = 1 - seq_num
         return
 
-    def send_segment(self, data, seq_num):
+    def send_segment(self, data, seq_num, dst_ip):
         segment = protocol.Layer4.encapsulate(self.src_port, self.dst_port, protocol.Layer4.DATA, seq_num, data)
 
         print(f"{self.name}: Layer 4: Checksum computed")
         print(f"{self.name}: Layer 4: Segment created by adding transport layer header (DATA, seq={seq_num}) (encapsulation)")
         print(f"{self.name}: Layer 4: Segment sent to Network Layer")
+        print()
 
         while True:
             # send through network, get ACK back
-            frame = self.send_packet(segment, self.dst_ip)
-            ack_frame = self.next_device.relay(frame, self.gateway_interface)
+            frame = self.send_packet(segment, dst_ip)
+            for subnet, (next_hope_ip, interface) in self.routing_table.items():
+                if ipaddress.IPv4Address(dst_ip) in ipaddress.IPv4Network(subnet):
+                    gateway_interface = interface
+                    break
+            ack_frame = self.next_device.relay(frame, gateway_interface)
             ack_packet = self.receive_frame(ack_frame)
             ack_segment = self.deliver_packet(ack_packet)
 
@@ -154,6 +163,7 @@ class Host:
             ack = protocol.Layer4.encapsulate(segment.src_port, segment.dst_port, protocol.Layer4.ACK, segment.seq_num)
             print(f"{self.name}: Layer 4: Segment created by adding transport layer header (ACK, seq={segment.seq_num}) (encapsulation)")
             print(f"{self.name}: Layer 4: Segment sent to Network Layer")
+            print()
 
             # update last ack value in case of failure
             self.last_ack = ack
@@ -175,26 +185,9 @@ class Router:
         self.interfaces = interfaces
         self.mac_table = {}
         self.routing_table = routing_table
+        self.connected_devices = {}
 
-    # LAYER 2 HANDLING
-    def frame_send(self, packet, next_hop_ip, interface):
-
-        src_mac = self.interfaces[interface][1]
-        dst_mac = self.arp_table[next_hop_ip]
-
-        print(f"{self.name}: Layer 2: Packet received from Network Layer")
-        print(f"{self.name}: Layer 2: Destination MAC lookup for next-hop IP ({next_hop_ip}) -> {dst_mac}")
-
-        # encapsulate frame and send
-        frame = protocol.Layer2.encapsulate(src_mac, dst_mac, packet)
-
-        print(f"{self.name}: Layer 2: Frame created: SRC_MAC={src_mac}, DST_MAC={dst_mac}")
-        print(f"{self.name}: Layer 2: Frame forwarded on {interface}")
-
-        return frame
-    
-
-    # LAYER 3 HANDLING
+    # -------------LAYER 3 HANDLING-------------
     def receive_frame(self, frame, interface):
 
         # check dst_mac against current destination
@@ -213,6 +206,7 @@ class Router:
         packet = frame.decapsulate()
 
         print(f"{self.name}: Layer 2: Packet delivered to Network Layer")
+        print()
 
         return packet
     
@@ -245,6 +239,7 @@ class Router:
                 print(f"{self.name}: Layer 3: Next-hop IP determined: {next_hop_ip}")
                 print(f"{self.name}: Layer 3: Outgoing interface selected ({out_interface})")
                 print(f"{self.name}: Layer 3: Packet forwarded to Data Link Layer")
+                print()
                 frame = self.frame_send(packet, next_hop_ip, out_interface)
                 return frame, out_interface
 
@@ -263,3 +258,21 @@ class Router:
         response_packet = self.receive_frame(response_frame, out_interface)
         reverse_frame, reverse_interface = self.forward_packet(response_packet)
         return reverse_frame
+          
+    # -------------LAYER 4 HANDLING-------------
+    def frame_send(self, packet, next_hop_ip, interface):
+
+        src_mac = self.interfaces[interface][1]
+        dst_mac = self.arp_table[next_hop_ip]
+
+        print(f"{self.name}: Layer 2: Packet received from Network Layer")
+        print(f"{self.name}: Layer 2: Destination MAC lookup for next-hop IP ({next_hop_ip}) -> {dst_mac}")
+
+        # encapsulate frame and send
+        frame = protocol.Layer2.encapsulate(src_mac, dst_mac, packet)
+
+        print(f"{self.name}: Layer 2: Frame created: SRC_MAC={src_mac}, DST_MAC={dst_mac}")
+        print(f"{self.name}: Layer 2: Frame forwarded on {interface}")
+        print()
+
+        return frame

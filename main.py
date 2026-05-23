@@ -84,6 +84,12 @@ def main():
         router.next_device = host_a
         host_a.next_device = router
         router.prev_device = host_b
+    
+    # wire router interfaces to connected devices (same regardless of direction)
+    router.connected_devices = {
+        "Interface 1": host_a,
+        "Interface 2": host_b
+    }
 
     # start simulation
     print("\n" + "-" * 55)
@@ -91,7 +97,7 @@ def main():
     print("-" * 55 + "\n")
 
     # pass application layer data to source for handling - triggers workflow
-    source.receive_data(data_size)
+    source.receive_data(data_size, destination.ip_addr)
 
 
 if __name__ == "__main__":

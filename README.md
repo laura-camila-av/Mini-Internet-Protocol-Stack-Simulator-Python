@@ -3,7 +3,7 @@
 ## Instructions for running the program
 Please run the following command:
 ``` 
-python main.py <datasize>
+python main.py <datasize> <source> <destination>
 ```
 With datasize being the size of the data in bytes, and source and destination being either "hostA" or "hostB".
 If just running `python main.py <datasize>`, source and destination will default to Host A and Host B respectively.
