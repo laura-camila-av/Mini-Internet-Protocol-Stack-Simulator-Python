@@ -10,6 +10,8 @@ class Host:
         self.routing_table = routing_table
         self.src_port = src_port
         self.dst_port = dst_port
+        
+        self.last_ack = None
 
     # -------------LAYER 2 HANDLING-------------
     def frame_send(self, packet, next_hop_ip):
@@ -135,6 +137,12 @@ class Host:
         # verify checksum
         if segment.verify_checksum():
             print(f"{self.name}: Layer 4: Checksum verified")
+        else:
+            print(f"{self.name}: Layer 4: Checksum verification failed. Segment discarded")
+            if self.last_ack is not None:
+                print(f"{self.name}: Layer 4: Resending last ACK seq{self.last_ack.seq_num}")
+                return self.last_ack
+
 
         # if DATA
         if segment.seg_type == protocol.Layer4.DATA:
@@ -146,6 +154,9 @@ class Host:
             ack = protocol.Layer4.encapsulate(segment.src_port, segment.dst_port, protocol.Layer4.ACK, segment.seq_num)
             print(f"{self.name}: Layer 4: Segment created by adding transport layer header (ACK, seq={segment.seq_num}) (encapsulation)")
             print(f"{self.name}: Layer 4: Segment sent to Network Layer")
+
+            # update last ack value in case of failure
+            self.last_ack = ack
 
             return ack
         
