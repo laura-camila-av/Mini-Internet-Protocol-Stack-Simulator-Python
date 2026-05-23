@@ -1,11 +1,13 @@
 import protocol
+import ipaddress
 
 class Host:
-    def __init__(self, name, ip_addr, mac_addr, arp_table, src_port, dst_port):
+    def __init__(self, name, ip_addr, mac_addr, routing_table, arp_table, src_port, dst_port):
         self.name = name
         self.ip_addr = ip_addr
         self.mac_addr = mac_addr
         self.arp_table = arp_table
+        self.routing_table = routing_table
         self.src_port = src_port
         self.dst_port = dst_port
         
@@ -44,6 +46,46 @@ class Host:
 
         return packet
     
+      # -------------LAYER 3 HANDLING-------------
+    def deliver_packet(self, packet):
+        print(f"{self.name}: Layer 3: Packet received from Data Link Layer: "
+            f"SRC_IP={packet.source_IP}, DST_IP={packet.dst_IP}, TTL={packet.ttl}")
+        print(f"{self.name}: Layer 3: Destination IP read: {packet.dst_IP}")
+
+        if packet.dst_IP == self.ip_addr:
+            print(f"{self.name}: Layer 3: Packet identified as local delivery")
+            print(f"{self.name}: Layer 3: Segment delivered to Transport Layer")
+            return self.receive_segment(packet.payload)
+        else:
+            print(f"{self.name}: Layer 3: Packet not for this host — discarding.")
+            return None
+
+    #Wraps segment in IP packet, performs routing table lookup to find next-hop IP and interface, then forwards to Layer 2.
+    def send_packet(self, segment, dst_ip):
+        """L3 encapsulation + routing + L2 framing. Returns the frame."""
+        print(f"{self.name}: Layer 3: Segment received from Transport Layer: "
+            f"SRC_IP={self.ip_addr}, DST_IP={dst_ip}, TTL=100")
+        print(f"{self.name}: Layer 3: Destination IP read: {dst_ip}")
+        print(f"{self.name}: Layer 3: Routing table lookup performed")
+
+        for subnet, (next_hop_ip, interface) in self.routing_table.items():
+            if ipaddress.IPv4Address(dst_ip) in ipaddress.IPv4Network(subnet):
+                print(f"{self.name}: Layer 3: Next-hop IP determined: {next_hop_ip}")
+                print(f"{self.name}: Layer 3: Outgoing interface selected")
+                print(f"{self.name}: Layer 3: Packet forwarded to Data Link Layer")
+                packet = protocol.Layer3.encapsulate_to_IP_packet(segment, self.ip_addr, dst_ip)
+                return self.frame_send(packet, next_hop_ip)
+
+        raise ValueError(f"No route found for destination IP: {dst_ip}")
+    
+    def handle_incoming(self, frame):
+        """Receiver side: process incoming DATA frame, return ACK frame"""
+        packet = self.receive_frame(frame)
+        ack_segment = self.deliver_packet(packet)
+        # send ACK back through L3 → L2
+        ack_frame = self.send_packet(ack_segment, packet.source_IP)
+        return ack_frame
+    
     # -------------LAYER 4 HANDLING-------------
 
     def receive_data(self, data_size):
@@ -70,21 +112,21 @@ class Host:
         return
 
     def send_segment(self, data, seq_num):
-
-        # call constructor to build header and create checksum
         segment = protocol.Layer4.encapsulate(self.src_port, self.dst_port, protocol.Layer4.DATA, seq_num, data)
 
-        print(f"{self.name}: Layer 4: Checksum completed")
+        print(f"{self.name}: Layer 4: Checksum computed")
         print(f"{self.name}: Layer 4: Segment created by adding transport layer header (DATA, seq={seq_num}) (encapsulation)")
         print(f"{self.name}: Layer 4: Segment sent to Network Layer")
 
-        # rdt2.2 (reliable data transfer v2.2)
         while True:
-            # send ACK to network layer (NOT YET DEFINED)
-            ack = self.send_packet(segment)
+            # send through network, get ACK back
+            frame = self.send_packet(segment, self.dst_ip)
+            ack_frame = self.next_device.relay(frame, self.gateway_interface)
+            ack_packet = self.receive_frame(ack_frame)
+            ack_segment = self.deliver_packet(ack_packet)
 
-            if ack.seg_type == protocol.Layer4.ACK and ack.seq_num == seq_num:
-                print(f"{self.name}: Layer 4: ACK received: seq={ack.seq_num}")
+            if ack_segment.seg_type == protocol.Layer4.ACK and ack_segment.seq_num == seq_num:
+                print(f"{self.name}: Layer 4: ACK received: seq={ack_segment.seq_num}")
                 break
             else:
                 print(f"{self.name}: Layer 4: Incorrect ACK received. Retransmitting segment seq={seq_num}")
@@ -120,7 +162,6 @@ class Host:
         
         # if ACK
         if segment.seg_type == protocol.Layer4.ACK:
-            print(f"{self.name}: Layer 4: ACK received: seq={segment.seq_num}")
 
             return segment
 
@@ -128,11 +169,12 @@ class Host:
         return segment
 
 class Router:
-    def __init__(self, name, arp_table, interfaces):
+    def __init__(self, name, arp_table, interfaces, routing_table):
         self.name = name
         self.arp_table = arp_table
         self.interfaces = interfaces
         self.mac_table = {}
+        self.routing_table = routing_table
 
     # LAYER 2 HANDLING
     def frame_send(self, packet, next_hop_ip, interface):
@@ -147,10 +189,12 @@ class Router:
         frame = protocol.Layer2.encapsulate(src_mac, dst_mac, packet)
 
         print(f"{self.name}: Layer 2: Frame created: SRC_MAC={src_mac}, DST_MAC={dst_mac}")
-        print(f"{self.name}: Layer 2: Frame forwarded om {interface}")
+        print(f"{self.name}: Layer 2: Frame forwarded on {interface}")
 
         return frame
     
+
+    # LAYER 3 HANDLING
     def receive_frame(self, frame, interface):
 
         # check dst_mac against current destination
@@ -171,4 +215,51 @@ class Router:
         print(f"{self.name}: Layer 2: Packet delivered to Network Layer")
 
         return packet
+    
+    def decrement_TTL(self, packet):
+        """
+        Decrements TTL by 1 at each router hop.
+        Returns False if TTL reaches 0 (packet should be dropped), True otherwise.
+        """
+        old_ttl = packet.ttl
+        packet.ttl -= 1
+        if packet.ttl <= 0:
+            print(f"{self.name}: Layer 3: TTL expired. Packet dropped.")
+            return False
+        print(f"{self.name}: Layer 3: TTL decremented: {old_ttl} → {packet.ttl}")
+        return True
 
+    def forward_packet(self, packet):
+        """Returns (frame, out_interface) tuple"""
+        print(f"{self.name}: Layer 3: Packet received from Data Link Layer: "
+            f"SRC_IP={packet.source_IP}, DST_IP={packet.dst_IP}, TTL={packet.ttl}")
+        print(f"{self.name}: Layer 3: Destination IP read: {packet.dst_IP}")
+
+        if not self.decrement_TTL(packet):
+            return None, None
+
+        print(f"{self.name}: Layer 3: Routing table lookup performed")
+
+        for subnet, (next_hop_ip, out_interface) in self.routing_table.items():
+            if ipaddress.IPv4Address(packet.dst_IP) in ipaddress.IPv4Network(subnet):
+                print(f"{self.name}: Layer 3: Next-hop IP determined: {next_hop_ip}")
+                print(f"{self.name}: Layer 3: Outgoing interface selected ({out_interface})")
+                print(f"{self.name}: Layer 3: Packet forwarded to Data Link Layer")
+                frame = self.frame_send(packet, next_hop_ip, out_interface)
+                return frame, out_interface
+
+        raise ValueError(f"No route found for destination IP: {packet.dst_IP}")
+
+    def relay(self, frame, in_interface):
+        """Full round-trip: receive frame, forward to destination, relay response back"""
+        #forward direction
+        packet = self.receive_frame(frame, in_interface)
+        out_frame, out_interface = self.forward_packet(packet)
+
+        # deliver to connected host, get ACK frame back
+        response_frame = self.connected_devices[out_interface].handle_incoming(out_frame)
+
+        # reverse direction — ACK comes back through router
+        response_packet = self.receive_frame(response_frame, out_interface)
+        reverse_frame, reverse_interface = self.forward_packet(response_packet)
+        return reverse_frame

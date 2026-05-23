@@ -1,3 +1,5 @@
+import ipaddress
+
 class Layer2:
 
     type_ipv4 = "0x0800"
@@ -18,6 +20,25 @@ class Layer2:
         # decapsulate frame to obtain the payload
         return self.payload
 
+class Layer3:
+    IP_HEADER_SIZE = 12  # 4+4+1+1+2
+
+    def __init__(self, source_IP, dst_IP, ttl, prot, size, payload):
+        self.source_IP = source_IP
+        self.dst_IP = dst_IP
+        self.ttl = ttl
+        self.prot = prot
+        self.size = size
+        self.payload = payload
+
+    @staticmethod
+    def encapsulate_to_IP_packet(payload, src_ip, dst_ip, ttl=100, protocol=17):
+        total_length = Layer3.IP_HEADER_SIZE + len(payload.data)
+        return Layer3(src_ip, dst_ip, ttl, protocol, total_length, payload)
+
+    def decapsulate(self):
+        return self.payload
+    
 class Layer4:
     
     DATA = 0
